@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -276,6 +277,11 @@
         }
     
 // Save form data to Firebase
+// Function to sanitize keys (replace invalid characters)
+function sanitizeKey(key) {
+    return key.replace(/[.#$/\[\]]/g, '_'); // Replace invalid characters with an underscore
+}
+
 function saveForm() {
     const grade = document.getElementById("grade").value;
     const section = document.getElementById("section").value;
@@ -293,12 +299,14 @@ function saveForm() {
     let allSubtopicsSelected = true;
 
     topicSections.forEach(section => {
-        const topicName = section.querySelector("b").textContent;
+        const topicName = section.querySelector("b").textContent.trim();
+        const sanitizedTopicName = sanitizeKey(topicName); // Sanitize the topic name
         const subtopics = {};
         const topicSubtopics = section.querySelectorAll(".subtopic");
 
         topicSubtopics.forEach((subtopic, index) => {
-            const subtopicName = subtopic.firstChild.textContent.trim(); // ✅ Get actual subtopic name
+            const subtopicName = subtopic.firstChild.textContent.trim();
+            const sanitizedSubtopicName = sanitizeKey(subtopicName); // Sanitize the subtopic name
 
             const responseInputs = subtopic.querySelectorAll("input[type='radio']:checked");
 
@@ -306,12 +314,12 @@ function saveForm() {
                 allSubtopicsSelected = false;
             } else {
                 const status = responseInputs[0].value;
-                subtopics[subtopicName] = status; // ✅ Store with real subtopic name
+                subtopics[sanitizedSubtopicName] = status; // Store with sanitized subtopic name
             }
         });
 
-        if (topicName && Object.keys(subtopics).length > 0) {
-            topicsData[topicName] = subtopics;
+        if (sanitizedTopicName && Object.keys(subtopics).length > 0) {
+            topicsData[sanitizedTopicName] = subtopics;
         }
     });
 
