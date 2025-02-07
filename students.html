@@ -238,43 +238,55 @@
     
         // Display topics and subtopics
         function displayTopics(topicsData) {
-            topicsContainer.innerHTML = "";
-            Object.keys(topicsData).forEach(topicKey => {
-                const topic = topicsData[topicKey];
-                const topicDiv = document.createElement('div');
-                topicDiv.classList.add('topic');
+    topicsContainer.innerHTML = "";
+
+    // Get the topic keys and sort them numerically
+    const topicKeys = Object.keys(topicsData);
     
-                const topicTitle = document.createElement('b');
-                topicTitle.textContent = topic.topic;
-                topicDiv.appendChild(topicTitle);
-    
-                const subtopicsContainer = document.createElement('div');
-                subtopicsContainer.classList.add('subtopics-container');
-                topic.subtopics.forEach((subtopic, index) => {
-                    const subtopicDiv = document.createElement('div');
-                    subtopicDiv.classList.add('subtopic');
-    
-                    subtopicDiv.textContent = subtopic;
-    
-                    const radioContainer = document.createElement('div');
-                    ['Understood', 'Need Practice', 'Not Understood'].forEach(status => {
-                        const radioLabel = document.createElement('label');
-                        radioLabel.textContent = status;
-                        const radioInput = document.createElement('input');
-                        radioInput.type = 'radio';
-                        radioInput.name = `subtopic-${topicKey}-${index}`;
-                        radioInput.value = status;
-                        radioLabel.appendChild(radioInput);
-                        radioContainer.appendChild(radioLabel);
-                    });
-                    subtopicDiv.appendChild(radioContainer);
-                    subtopicsContainer.appendChild(subtopicDiv);
-                });
-    
-                topicDiv.appendChild(subtopicsContainer);
-                topicsContainer.appendChild(topicDiv);
+    // Sort topic keys numerically
+    topicKeys.sort((a, b) => {
+        const numA = parseInt(a.replace(/\D/g, ''), 10); // Remove non-numeric characters and parse as int
+        const numB = parseInt(b.replace(/\D/g, ''), 10); // Remove non-numeric characters and parse as int
+        return numA - numB; // Compare numerically
+    });
+
+    topicKeys.forEach(topicKey => {
+        const topic = topicsData[topicKey];
+        const topicDiv = document.createElement('div');
+        topicDiv.classList.add('topic');
+
+        const topicTitle = document.createElement('b');
+        topicTitle.textContent = topic.topic;
+        topicDiv.appendChild(topicTitle);
+
+        const subtopicsContainer = document.createElement('div');
+        subtopicsContainer.classList.add('subtopics-container');
+        topic.subtopics.forEach((subtopic, index) => {
+            const subtopicDiv = document.createElement('div');
+            subtopicDiv.classList.add('subtopic');
+
+            subtopicDiv.textContent = subtopic;
+
+            const radioContainer = document.createElement('div');
+            ['Understood', 'Need Practice', 'Not Understood'].forEach(status => {
+                const radioLabel = document.createElement('label');
+                radioLabel.textContent = status;
+                const radioInput = document.createElement('input');
+                radioInput.type = 'radio';
+                radioInput.name = `subtopic-${topicKey}-${index}`;
+                radioInput.value = status;
+                radioLabel.appendChild(radioInput);
+                radioContainer.appendChild(radioLabel);
             });
-        }
+            subtopicDiv.appendChild(radioContainer);
+            subtopicsContainer.appendChild(subtopicDiv);
+        });
+
+        topicDiv.appendChild(subtopicsContainer);
+        topicsContainer.appendChild(topicDiv);
+    });
+}
+
     
 // Save form data to Firebase
 // Function to sanitize keys (replace invalid characters)
