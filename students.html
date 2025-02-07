@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Topics Entry</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background-color: #4facfe;
+            padding: 15px;
+            color: white;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h2 {
+            margin: 0;
+        }
+        .container {
+            margin-top: 60px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        select, input[type="text"], button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #00c6ff;
+            color: white;
+        }
+        button {
+            background-color: #4facfe;
+            color: white;
+            border: none;
+        }
+        .topic {
+            margin-bottom: 20px;
+        }
+        .topic div {
+    margin: 10px; /* Adjust margin as needed */ 
+}
+    .topic label{
+        margin-right: 30px;
+    }
+        .subtopics div {
+            margin-top: 10px;
+        }
+        .subtopics label {
+            display: inline-block;
+            margin-right: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Student Topics Entry</h2>
+    </div>
+    <div class="container">
+        <label for="student-name">Student Name:</label>
+        <input type="text" id="student-name" placeholder="Enter your name">
+        
+        <!-- Dynamic Select Options for Grade, Section, Subject, Paper -->
+        <select id="grade">
+            <option value="">Select Grade</option>
+        </select>
+        <select id="section">
+            <option value="Blue">Blue</option>
+            <option value="Green">Green</option>
+        </select>
+        <select id="subject">
+            <option value="">Select Subject</option>
+        </select>
+        <select id="paper">
+            <option value="">Select Paper</option>
+        </select>
+        
+        <!-- Topics Container where all topics and subtopics will appear -->
+        <div id="topics-container"></div>
+
+        <button id="save-button">Save</button>
+    </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+        import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+    
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBy71Yn9FKyPFcpxD06bmk-L5wySM3smdA",
+            authDomain: "pscs-dd9ea.firebaseapp.com",
+            databaseURL: "https://pscs-dd9ea-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "pscs-dd9ea",
+            storageBucket: "pscs-dd9ea.firebasestorage.app",
+            messagingSenderId: "754149930287",
+            appId: "1:754149930287:web:ea9d2a91b86283d3de1dda",
+            measurementId: "G-R71WSHZ1DK"
+        };
+    
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+    
+        const gradeSelect = document.getElementById('grade');
+        const subjectSelect = document.getElementById('subject');
+        const paperSelect = document.getElementById('paper');
+        const topicsContainer = document.getElementById('topics-container');
+        const saveButton = document.getElementById("save-button");
+    
+        let teacherData = {};
+    
+        // Fetch grades dynamically from Firebase
+        function fetchGrades() {
+            const teachersRef = ref(database, "teachers");
+            get(teachersRef).then(snapshot => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    Object.keys(data).forEach(teacherName => {
+                        const grades = data[teacherName].grades;
+                        Object.keys(grades).forEach(grade => {
+                            if (!teacherData[grade]) {
+                                teacherData[grade] = {};
+                            }
+                            teacherData[grade][teacherName] = grades[grade];
+                        });
+                    });
+                    populateGrades();
+                }
+            }).catch(error => {
+                console.error("Error fetching teacher data:", error);
+            });
+        }
+    
+        // Populate grade dropdown
+        function populateGrades() {
+            Object.keys(teacherData).forEach(grade => {
+                const option = document.createElement('option');
+                option.value = grade;
+                option.textContent = grade;
+                gradeSelect.appendChild(option);
+            });
+        }
+    
+        gradeSelect.addEventListener("change", () => {
+            populateSubjects();
+        });
+    
+        // Fetch subjects and papers for both teachers
+        function populateSubjects() {
+            subjectSelect.innerHTML = "<option value=''>Select Subject</option>";
+            paperSelect.innerHTML = "<option value=''>Select Paper</option>";
+    
+            const selectedGrade = gradeSelect.value;
+            if (selectedGrade) {
+                Object.keys(teacherData[selectedGrade]).forEach(teacherName => {
+                    const teacherSubjects = teacherData[selectedGrade][teacherName].subjects;
+                    
+                    Object.keys(teacherSubjects).forEach(subject => {
+                        const option = document.createElement('option');
+                        option.value = subject;
+                        option.textContent = `${subject} (${teacherName})`;  // Show teacher name next to the subject
+                        subjectSelect.appendChild(option);
+                    });
+                });
+            }
+        }
+    
+        subjectSelect.addEventListener("change", () => {
+            populatePapers();
+        });
+    
+        function populatePapers() {
+            paperSelect.innerHTML = "<option value=''>Select Paper</option>";
+    
+            const selectedGrade = gradeSelect.value;
+            const selectedSubject = subjectSelect.value;
+    
+            if (selectedGrade && selectedSubject) {
+                Object.keys(teacherData[selectedGrade]).forEach(teacherName => {
+                    const teacherSubjects = teacherData[selectedGrade][teacherName].subjects;
+                    if (teacherSubjects[selectedSubject]) {
+                        const papers = teacherSubjects[selectedSubject].papers;
+    
+                        Object.keys(papers).forEach(paper => {
+                            const option = document.createElement('option');
+                            option.value = paper;
+                            option.textContent = `${paper} (${teacherName})`;  // Show teacher name next to the paper
+                            paperSelect.appendChild(option);
+                        });
+                    }
+                });
+            }
+        }
+    
+        paperSelect.addEventListener("change", () => {
+            fetchTopics();
+        });
+    
+        // Fetch topics when paper is selected
+        function fetchTopics() {
+            const selectedGrade = gradeSelect.value;
+            const selectedSubject = subjectSelect.value;
+            const selectedPaper = paperSelect.value;
+    
+            let username = paperSelect.options[paperSelect.selectedIndex].text.split("(")[1].split(")")[0];
+    
+            if (selectedGrade && selectedSubject && selectedPaper) {
+                const topicsRef = ref(database, `teachers/${username}/grades/${selectedGrade}/subjects/${selectedSubject}/papers/${selectedPaper}/topics`);
+                get(topicsRef).then(snapshot => {
+                    if (snapshot.exists()) {
+                        const topicsData = snapshot.val();
+                        displayTopics(topicsData);
+                    } else {
+                        console.log("No topics data available for this paper.");
+                    }
+                }).catch(error => {
+                    console.error("Error fetching topics:", error);
+                });
+            }
+        }
+    
+        // Display topics and subtopics
+        function displayTopics(topicsData) {
+            topicsContainer.innerHTML = "";
+            Object.keys(topicsData).forEach(topicKey => {
+                const topic = topicsData[topicKey];
+                const topicDiv = document.createElement('div');
+                topicDiv.classList.add('topic');
+    
+                const topicTitle = document.createElement('b');
+                topicTitle.textContent = topic.topic;
+                topicDiv.appendChild(topicTitle);
+    
+                const subtopicsContainer = document.createElement('div');
+                subtopicsContainer.classList.add('subtopics-container');
+                topic.subtopics.forEach((subtopic, index) => {
+                    const subtopicDiv = document.createElement('div');
+                    subtopicDiv.classList.add('subtopic');
+    
+                    subtopicDiv.textContent = subtopic;
+    
+                    const radioContainer = document.createElement('div');
+                    ['Understood', 'Need Practice', 'Not Understood'].forEach(status => {
+                        const radioLabel = document.createElement('label');
+                        radioLabel.textContent = status;
+                        const radioInput = document.createElement('input');
+                        radioInput.type = 'radio';
+                        radioInput.name = `subtopic-${topicKey}-${index}`;
+                        radioInput.value = status;
+                        radioLabel.appendChild(radioInput);
+                        radioContainer.appendChild(radioLabel);
+                    });
+                    subtopicDiv.appendChild(radioContainer);
+                    subtopicsContainer.appendChild(subtopicDiv);
+                });
+    
+                topicDiv.appendChild(subtopicsContainer);
+                topicsContainer.appendChild(topicDiv);
+            });
+        }
+    
+// Save form data to Firebase
+function saveForm() {
+    const grade = document.getElementById("grade").value;
+    const section = document.getElementById("section").value;
+    const subject = document.getElementById("subject").value;
+    const paper = document.getElementById("paper").value;
+    const studentName = document.getElementById("student-name").value;
+
+    if (!grade || !section || !subject || !paper || !studentName) {
+        alert("Please fill in all fields.");
+        return;
+    }
+
+    const topicsData = {};
+    const topicSections = document.querySelectorAll(".topic");
+    let allSubtopicsSelected = true;
+
+    topicSections.forEach(section => {
+        const topicName = section.querySelector("b").textContent;
+        const subtopics = {};
+        const topicSubtopics = section.querySelectorAll(".subtopic");
+
+        topicSubtopics.forEach((subtopic, index) => {
+            const subtopicName = subtopic.firstChild.textContent.trim(); // ✅ Get actual subtopic name
+
+            const responseInputs = subtopic.querySelectorAll("input[type='radio']:checked");
+
+            if (responseInputs.length === 0) {
+                allSubtopicsSelected = false;
+            } else {
+                const status = responseInputs[0].value;
+                subtopics[subtopicName] = status; // ✅ Store with real subtopic name
+            }
+        });
+
+        if (topicName && Object.keys(subtopics).length > 0) {
+            topicsData[topicName] = subtopics;
+        }
+    });
+
+    if (!allSubtopicsSelected) {
+        alert("Please make sure all subtopics are selected.");
+        return;
+    }
+
+    if (Object.keys(topicsData).length === 0) {
+        alert("Please add at least one topic with subtopics.");
+        return;
+    }
+
+    const responseRef = ref(database, `responses/${grade}/${subject}/${section}/${paper}/students/${studentName}`);
+    const studentResponse = { topics: topicsData };
+
+    set(responseRef, studentResponse)
+        .then(() => {
+            alert("Response saved successfully!");
+            resetForm();
+        })
+        .catch(error => {
+            console.error("Error saving response:", error);
+            alert("Error saving response. Please try again.");
+        });
+}
+
+    
+        saveButton.addEventListener("click", saveForm);
+
+       
+
+        // Function to reset the form after saving
+        function resetForm() {
+            // Reset student name input
+            document.getElementById('student-name').value = '';
+
+            // Reset grade, section, subject, and paper selects
+            document.getElementById('grade').selectedIndex = 0;
+            document.getElementById('section').selectedIndex = 0;
+            document.getElementById('subject').selectedIndex = 0;
+            document.getElementById('paper').selectedIndex = 0;
+
+            // Clear topics and subtopics section
+            document.getElementById('topics-container').innerHTML = '';
+        }
+
+        // Add event listener for save button
+        document.getElementById('save-button').addEventListener("click", saveForm);
+
+        // Initialize the app
+        fetchGrades();
+    </script>
+</body>
+</html>

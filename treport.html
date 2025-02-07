@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Reports - Teacher Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <!-- Add jsPDF Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<!-- Add jsPDF AutoTable Plugin -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.21/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        /* Reusing the previous styles */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            margin: 0;
+            height: 100vh;
+            padding-top: 80px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            background: rgba(6, 77, 103, 0.7);
+            color: rgb(255, 255, 255);
+            padding: 15px 20px;
+            font-size: 24px;
+            font-weight: bold;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .header .title {
+            font-size: 24px;
+        }
+        .header .teacher-info {
+            display: flex;
+            align-items: center;
+        }
+        .header .teacher-name {
+            font-size: 18px;
+            font-weight: normal;
+            color: white;
+            margin-right: 15px;
+        }
+        .header .logoff-button {
+            padding: 8px 16px;
+            background-color: #ff4d4d;
+            border: none;
+            color: white;
+            font-size: 14px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .header .logoff-button:hover {
+            background-color: #ff1a1a;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 80%;
+            max-width: 1200px;
+            margin-top: 150px;
+        }
+        .dropdowns {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            width: 100%;
+        }
+        .dropdown {
+            width: 30%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            width: 30%;
+        }
+        .card:hover {
+            box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(-5px);
+        }
+        .card i {
+            font-size: 50px;
+            color: #4facfe;
+            margin-bottom: 15px;
+        }
+        .card h3 {
+            font-size: 18px;
+            color: #333;
+        }
+        .card p {
+            font-size: 14px;
+            color: #666;
+        }
+        .card button {
+            padding: 10px 20px;
+            background: #4facfe;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 16px;
+            margin-top: 15px;
+        }
+        .card button:hover {
+            background: #00c6ff;
+        }
+
+        /* Table styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+            text-align: left;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        th {
+            background-color: #4facfe;
+            color: white;
+            
+        }
+        td {
+            background-color: #f4f4f4;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">Generate Reports - Teacher Dashboard</div>
+        <div class="teacher-info">
+            <div class="teacher-name" id="teacher-name">Hello, Teacher</div>
+            <button id="logoff-button" class="logoff-button">Log Off</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Dropdowns for Grade, Section, Subject, Paper -->
+        <div class="dropdowns">
+            <select class="dropdown" id="grade-dropdown">
+                <option value="">Select Grade</option>
+            </select>
+
+            <select class="dropdown" id="subject-dropdown">
+                <option value="">Select Subject</option>
+            </select>
+
+            <select class="dropdown" id="section-dropdown">
+                <option value="">Select Section</option>
+            </select>
+
+            <select class="dropdown" id="paper-dropdown">
+                <option value="">Select Paper</option>
+            </select>
+        </div>
+
+        <!-- Cards for report generation options -->
+        <div class="container" style="display: flex; flex-direction: row; justify-content: space-between; gap: 30px; width: 100%;">
+            <!-- Card: Create Whole Class Report -->
+            <div class="card">
+                <i class="fas fa-users"></i>
+                <h3>Create Whole Class Report</h3>
+                <p>Create a report for the whole class.</p>
+                <button id="generate-pdf">Generate Report</button>
+            </div>
+
+            <!-- Card: Create Individual Report -->
+            <div class="card">
+                <i class="fas fa-user"></i>
+                <h3>Create Individual Report</h3>
+                <p>Generate a report for a single student.</p>
+                <button id="generate-individual-report">Generate Report</button>
+            </div>
+
+            <!-- Card: Analyze Results -->
+            <div class="card">
+                <i class="fas fa-chart-bar"></i>
+                <h3>Analyze Results</h3>
+                <p>Analyze student results and performance.</p>
+                <button id="generate-analysis-pdf">Analyze</button>
+            </div>
+        </div>
+
+        <!-- Table to display the report -->
+        <table id="report-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Not Understood</th>
+                    <th>More Practice</th>
+                    <th>Understood</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data will be populated here based on selection -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js"; 
+    
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBy71Yn9FKyPFcpxD06bmk-L5wySM3smdA",
+            authDomain: "pscs-dd9ea.firebaseapp.com",
+            databaseURL: "https://pscs-dd9ea-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "pscs-dd9ea",
+            storageBucket: "pscs-dd9ea.firebasestorage.app",
+            messagingSenderId: "754149930287",
+            appId: "1:754149930287:web:ea9d2a91b86283d3de1dda",
+            measurementId: "G-R71WSHZ1DK"
+        };
+    
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const teacherUsername = sessionStorage.getItem('teacherUsername');
+        
+        if (!teacherUsername) {
+            alert("Teacher username not found.");
+            window.location.href = "tsignup.html";  // Redirect to login if username is missing
+        } else {
+            document.getElementById("teacher-name").textContent = "Hello, " + teacherUsername;
+        }
+    
+        // Fetch and populate grade dropdown dynamically
+        const gradeDropdown = document.getElementById("grade-dropdown");
+        const sectionDropdown = document.getElementById("section-dropdown");
+        const subjectDropdown = document.getElementById("subject-dropdown");
+        const paperDropdown = document.getElementById("paper-dropdown");
+    
+        // Fetching data for grades
+        get(ref(database, 'responses')).then(snapshot => {
+            if (snapshot.exists()) {
+                const grades = new Set();
+                snapshot.forEach(gradeSnapshot => {
+                    // gradeSnapshot.key will be the grade, e.g., "4"
+                    const grade = gradeSnapshot.key;
+                    grades.add(grade);
+                });
+                grades.forEach(grade => {
+                    const option = document.createElement('option');
+                    option.value = grade;
+                    option.textContent = grade;
+                    gradeDropdown.appendChild(option);
+                });
+            }
+        });
+    
+        // Event listener to fetch subjects when a grade is selected
+        gradeDropdown.addEventListener('change', function() {
+            const grade = gradeDropdown.value;
+            sectionDropdown.innerHTML = '<option value="">Select Section</option>';
+            subjectDropdown.innerHTML = '<option value="">Select Subject</option>';
+            paperDropdown.innerHTML = '<option value="">Select Paper</option>';
+            if (grade) {
+                get(ref(database, 'responses/' + grade)).then(snapshot => {
+                    if (snapshot.exists()) {
+                        const subjects = new Set();
+                        snapshot.forEach(subjectSnapshot => {
+                            const subject = subjectSnapshot.key;
+                            subjects.add(subject);
+                        });
+                        subjects.forEach(subject => {
+                            const option = document.createElement('option');
+                            option.value = subject;
+                            option.textContent = subject;
+                            subjectDropdown.appendChild(option);
+                        });
+                    }
+                });
+            }
+        });
+    
+        // Event listener to fetch sections when a subject is selected
+        subjectDropdown.addEventListener('change', function() {
+            const grade = gradeDropdown.value;
+            const subject = subjectDropdown.value;
+            console.log(subject)
+            sectionDropdown.innerHTML = '<option value="">Select Section</option>';
+            paperDropdown.innerHTML = '<option value="">Select Paper</option>';
+            if (subject) {
+                get(ref(database, 'responses/' + grade + '/' + subject)).then(snapshot => {
+                    if (snapshot.exists()) {
+                       
+                        const sections = new Set();
+                        snapshot.forEach(sectionSnapshot => {
+                            const section = sectionSnapshot.key;
+                            sections.add(section);
+                        });
+                        sections.forEach(section => {
+                            const option = document.createElement('option');
+                            option.value = section;
+                            option.textContent = section;
+                            sectionDropdown.appendChild(option);
+                        });
+                    }
+                });
+            }
+        });
+    
+        // Event listener to fetch papers when a section is selected
+        sectionDropdown.addEventListener('change', function() {
+            const grade = gradeDropdown.value;
+            const subject = subjectDropdown.value;
+            const section = sectionDropdown.value;
+            paperDropdown.innerHTML = '<option value="">Select Paper</option>';
+            if (section) {
+                get(ref(database, 'responses/' + grade + '/' + subject + '/' + section)).then(snapshot => {
+                    if (snapshot.exists()) {
+                        const papers = new Set();
+                        snapshot.forEach(paperSnapshot => {
+                            const paper = paperSnapshot.key;
+                            papers.add(paper);
+                        });
+                        papers.forEach(paper => {
+                            const option = document.createElement('option');
+                            option.value = paper;
+                            option.textContent = paper;
+                            paperDropdown.appendChild(option);
+                        });
+                    }
+                });
+            }
+        });
+    
+        // Event listener for paper dropdown to fetch student results and display them in a table
+        paperDropdown.addEventListener('change', function() {
+            const grade = gradeDropdown.value;
+            const subject = subjectDropdown.value;
+            const section = sectionDropdown.value;
+            const paper = paperDropdown.value;
+    
+            if (grade && section && subject && paper) {
+                get(ref(database, 'responses/' + grade + '/' + subject + '/'+ section +'/' + paper + '/students/')).then(snapshot => {
+                    const tableBody = document.getElementById('report-table').getElementsByTagName('tbody')[0];
+                    tableBody.innerHTML = ""; // Clear previous results
+                    console.log(snapshot.val())
+                    snapshot.forEach(studentSnapshot => {
+                        
+                        const student = studentSnapshot.val();
+                        const studentName = studentSnapshot.key;
+                        const topics = student.topics || [];
+                        let notUnderstood = "";
+                        let morePractice = "";
+                        let understood = "";
+    
+                        // Loop through topics and subtopics to determine the student's progress
+              // Loop through topics and subtopics to determine the student's progress
+
+let notUnderstoodCount = 1;
+let morePracticeCount = 1;
+let understoodCount = 1;
+let space = "  "
+
+// Loop through topics and subtopics to determine the student's progress
+if (topics && typeof topics === 'object') { // Check if topics is an object
+    for (const topicKey in topics) { // Iterate through each topic
+        if (topics.hasOwnProperty(topicKey)) {
+            const subtopics = topics[topicKey]; // Get the subtopics for this topic
+            
+            // Iterate through subtopics to determine progress
+            for (const subtopicKey in subtopics) {
+                const progress = subtopics[subtopicKey]; // Get the progress value
+                const subtopicText = subtopicKey; // Subtopic name
+
+                if (progress === "Not Understood") {
+                    // Add topic and subtopic to "Not Understood" list, with numbering
+                    notUnderstood += `${notUnderstoodCount}. ${topicKey}\n  ${"  "} ${subtopicText}\n`;
+                    notUnderstoodCount++;
+                } else if (progress === "Need Practice") {
+                    // Add topic and subtopic to "More Practice" list, with numbering
+                    morePractice += `${morePracticeCount}. ${topicKey}\n ${"  "} ${subtopicText}\n`;
+                    morePracticeCount++;
+                } else if (progress === "Understood") {
+                    // Add topic and subtopic to "Understood" list, with numbering
+                    understood += `${understoodCount}. ${topicKey}\n    ${subtopicText}\n`;
+                    understoodCount++;
+                }
+            }
+        }
+    }
+}
+
+// Create table row for the student
+const row = tableBody.insertRow();
+row.innerHTML = `
+    <td>${studentName}</td>
+    <td style="white-space: pre-line;">${notUnderstood.trim()}</td>
+    <td style="white-space: pre-line;">${morePractice.trim()}</td>
+    <td style="white-space: pre-line;">${understood.trim()}</td>
+`;
+                 });
+                });
+            }
+        });
+    
+        const logOffButton = document.getElementById('logoff-button');
+        logOffButton.addEventListener('click', function() {
+            sessionStorage.removeItem('teacherUsername');
+            window.location.href = 'tsignup.html'; // Redirect to login page
+        });
+
+ // Wait until the page is loaded and jsPDF is available
+document.getElementById('generate-pdf').addEventListener('click', function() {
+    // Make sure jsPDF is available
+    const { jsPDF } = window.jspdf;
+
+    const grade = document.getElementById('grade-dropdown').value;
+    const section = document.getElementById('section-dropdown').value;
+    const subject = document.getElementById('subject-dropdown').value;
+    const paper = document.getElementById('paper-dropdown').value;
+
+    if (grade && section && subject && paper) {
+        // Create a new jsPDF instance
+        const doc = new jsPDF();
+        
+        // Add title with Grade, Section, Subject, Paper
+        doc.setFontSize(18);
+        doc.text(`Grade: ${grade}`, 10, 10);
+        doc.text(`Section: ${section}`, 10, 20);
+        doc.text(`Subject: ${subject}`, 10, 30);
+        doc.text(`Paper: ${paper}`, 10, 40);
+
+        // Add table headers
+        doc.setFontSize(12);
+        const tableColumns = ['Name', 'Not Understood', 'More Practice', 'Understood'];
+        const tableRows = [];
+        
+        // Populate table rows (same as in the report table)
+        const rows = document.querySelectorAll('#report-table tbody tr');
+        rows.forEach(row => {
+            const rowData = [];
+            row.querySelectorAll('td').forEach(cell => {
+                rowData.push(cell.textContent.trim());
+            });
+            tableRows.push(rowData);
+        });
+
+        // Add table to PDF
+        doc.autoTable({
+            head: [tableColumns],
+            body: tableRows,
+            startY: 50,
+            theme: 'grid',
+            margin: { top: 50, left: 10, right: 10, bottom: 10 }
+        });
+
+        // Construct the dynamic filename
+        const filename = `${grade}_${subject}_${section}_${paper}_clsreport.pdf`;
+
+        // Save the PDF with the dynamic filename
+        doc.save(filename);
+    } else {
+        alert("Please select Grade, Section, Subject, and Paper.");
+    }
+});
+
+document.getElementById('generate-individual-report').addEventListener('click', function() {
+    // Get selected grade, section, subject, and paper
+    const grade = document.getElementById('grade-dropdown').value;
+    const section = document.getElementById('section-dropdown').value;
+    const subject = document.getElementById('subject-dropdown').value;
+    const paper = document.getElementById('paper-dropdown').value;
+
+    // Fetch all students' data from Firebase for the selected grade, section, subject, and paper
+    get(ref(database, `responses/${grade}/${subject}/${section}/${paper}/students`)).then(snapshot => {
+        if (snapshot.exists()) {
+            const students = snapshot.val();
+
+            // Create a jsPDF instance
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Function to add a category table to the PDF
+            const addCategoryTable = (title, data, startY, category) => {
+                let y = startY;
+                doc.setFontSize(12);
+                doc.text(title, 10, y);
+                y += 10;
+
+                // Create table with an extra column for ticks/select box
+                const tableHeaders = ['No', 'Topic', 'Subtopic', category === "Understood" ? 'Action' : 'Action'];
+                const tableRows = data.map((row) => {
+                    // If category is "Understood", add a tick mark
+                    if (category === "Understood") {
+                        return [row[0], row[1], row[2], ""];
+                    } else {
+                        // If it's "Need Practice" or "Not Understood", add a placeholder for a select dropdown
+                        return [row[0], row[1], row[2], ''];
+                    }
+                });
+
+                // Add table to the PDF
+                doc.autoTable({
+                    head: [tableHeaders],
+                    body: tableRows,
+                    startY: y,
+                    theme: 'grid',
+                    margin: { top: 5, left: 10, right: 10, bottom: 10 }
+                });
+
+                // Return the updated Y position after the table
+                return doc.lastAutoTable.finalY + 10;
+            };
+
+            // Loop through each student and generate their individual report
+            for (const studentName in students) {
+                const student = students[studentName];
+                const topics = student.topics || [];
+                const understood = [];
+                const needPractice = [];
+                const notUnderstood = [];
+
+                // Categorize topics
+                let notUnderstoodCount = 1;
+                let morePracticeCount = 1;
+                let understoodCount = 1;
+
+                if (topics && typeof topics === 'object') {
+                    for (const topicKey in topics) {
+                        if (topics.hasOwnProperty(topicKey)) {
+                            const subtopics = topics[topicKey];
+
+                            for (const subtopicKey in subtopics) {
+                                const progress = subtopics[subtopicKey];
+
+                                if (progress === "Not Understood") {
+                                    notUnderstood.push([notUnderstoodCount++, topicKey, subtopicKey]);
+                                } else if (progress === "Need Practice") {
+                                    needPractice.push([morePracticeCount++, topicKey, subtopicKey]);
+                                } else if (progress === "Understood") {
+                                    understood.push([understoodCount++, topicKey, subtopicKey]);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Add student's details at the top of the page
+                doc.setFontSize(14);
+                doc.text(`Name: ${studentName}`, 10, 10);
+                doc.text(`Grade: ${grade}`, 10, 20);
+                doc.text(`Section: ${section}`, 10, 30);
+                doc.text(`Subject: ${subject}`, 10, 40);
+                doc.text(`Paper: ${paper}`, 10, 50);
+
+                // Add tables for each category (Understood, Need Practice, Not Understood)
+                let currentY = 60; // Starting Y position after subject
+                currentY = addCategoryTable("Understood", understood, currentY, "Understood");
+                currentY = addCategoryTable("Need Practice", needPractice, currentY, "Need Practice");
+                currentY = addCategoryTable("Not Understood", notUnderstood, currentY, "Not Understood");
+
+                // Add a new page after each student to start their report on a fresh page
+                if (studentName !== Object.keys(students).slice(-1)[0]) {  // Check if it's not the last student
+                    doc.addPage();
+                }
+            }
+
+            // Save the PDF
+            const filename = `${grade}_${subject}_${section}_${paper}_All_Students_Report.pdf`;
+            doc.save(filename);
+        } else {
+            alert('No data found for students.');
+        }
+    });
+});
+
+
+
+document.getElementById('generate-analysis-pdf').addEventListener('click', function() {
+    const grade = document.getElementById('grade-dropdown').value;
+    const section = document.getElementById('section-dropdown').value;
+    const subject = document.getElementById('subject-dropdown').value;
+    const paper = document.getElementById('paper-dropdown').value;
+
+    if (grade && section && subject && paper) {
+        // Create a new jsPDF instance
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Set the title section: Grade, Section, Subject, Paper
+        doc.setFontSize(14);
+        doc.text(`Grade: ${grade}`, 10, 10);
+        doc.text(`Section: ${section}`, 10, 20);
+        doc.text(`Subject: ${subject}`, 10, 30);
+        doc.text(`Paper: ${paper}`, 10, 40);
+
+        let currentY = 50;  // Start after the title section
+
+        // Function to add a category table with borders
+        const addCategoryTable = (title, data, startY, categoryColor) => {
+            let y = startY;
+            doc.setFontSize(12);
+            doc.text(title, 10, y);
+            y += 10;
+
+            // Table headers
+            const tableHeaders = ['Topic', 'Subtopic'];
+
+            // Table rows (data for each topic and subtopic)
+            const tableRows = data.map(row => [row.topic, row.subtopic]);
+
+            // Add the table with borders
+            doc.autoTable({
+                head: [tableHeaders],
+                body: tableRows,
+                startY: y,
+                theme: 'grid', // Grid theme adds borders
+                margin: { top: 5, left: 10, right: 10, bottom: 10 },
+                styles: {
+                    cellPadding: 2,
+                    fontSize: 10,
+                    lineWidth: 0.5,  // Line thickness
+                    lineColor: [0, 0, 0],  // Black color for lines
+                },
+                headStyles: {
+                    fillColor: [200, 220, 255], // Light blue color for header
+                    textColor: [0, 0, 0],
+                    fontStyle: 'bold',
+                    lineWidth: 0.5,
+                    lineColor: [0, 0, 0],
+                },
+                bodyStyles: {
+                    fillColor: categoryColor, // Category color for the rows
+                    textColor: [0, 0, 0],
+                }
+            });
+
+            // Return the updated Y position after the table
+            return doc.lastAutoTable.finalY + 10;
+        };
+
+        // Fetch data from Firebase
+        get(ref(database, `responses/${grade}/${subject}/${section}/${paper}/students`)).then(snapshot => {
+            if (snapshot.exists()) {
+                const students = snapshot.val();
+                const totalStudents = Object.keys(students).length;
+
+                // Arrays to hold topics and subtopics that meet the 80% condition
+                let understoodTopics = [];
+                let needPracticeTopics = [];
+                let notUnderstoodTopics = [];
+
+                // Count for each subtopic in each category (Understood, Need Practice, Not Understood)
+                let subtopicCount = {};
+
+                // Process each student
+                for (const studentName in students) {
+                    const student = students[studentName];
+                    const topics = student.topics || {};
+
+                    // Loop through the topics and subtopics
+                    for (const topicName in topics) {
+                        if (topics.hasOwnProperty(topicName)) {
+                            const subtopics = topics[topicName];
+
+                            // Loop through subtopics of this topic
+                            for (const subtopicName in subtopics) {
+                                const progress = subtopics[subtopicName];
+
+                                // Initialize counters for each subtopic if not already present
+                                if (!subtopicCount[subtopicName]) {
+                                    subtopicCount[subtopicName] = {
+                                        understood: 0,
+                                        needPractice: 0,
+                                        notUnderstood: 0,
+                                        total: 0,
+                                        topic: topicName  // Correctly store the topic name
+                                    };
+                                }
+
+                                // Increment the total count for this subtopic
+                                subtopicCount[subtopicName].total++;
+
+                                // Count the progress for this subtopic
+                                if (progress === "Understood") {
+                                    subtopicCount[subtopicName].understood++;
+                                } else if (progress === "Need Practice") {
+                                    subtopicCount[subtopicName].needPractice++;
+                                } else if (progress === "Not Understood") {
+                                    subtopicCount[subtopicName].notUnderstood++;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Now, check which subtopics meet the 80% condition for each category
+                for (const subtopicKey in subtopicCount) {
+                    const subtopicData = subtopicCount[subtopicKey];
+                    const understoodPercentage = (subtopicData.understood / totalStudents) * 100;
+                    const needPracticePercentage = (subtopicData.needPractice / totalStudents) * 100;
+                    const notUnderstoodPercentage = (subtopicData.notUnderstood / totalStudents) * 100;
+
+                    // Add subtopic to the relevant category if it exceeds the 80% threshold
+                    if (understoodPercentage > 80) {
+                        understoodTopics.push({
+                            topic: subtopicData.topic, // We now correctly use the `topic` from subtopicData
+                            subtopic: subtopicKey
+                        });
+                    }
+                    if (needPracticePercentage > 80) {
+                        needPracticeTopics.push({
+                            topic: subtopicData.topic, // We now correctly use the `topic` from subtopicData
+                            subtopic: subtopicKey
+                        });
+                    }
+                    if (notUnderstoodPercentage > 80) {
+                        notUnderstoodTopics.push({
+                            topic: subtopicData.topic, // We now correctly use the `topic` from subtopicData
+                            subtopic: subtopicKey
+                        });
+                    }
+                }
+
+                // Add each category table with unique subtopics
+                currentY = addCategoryTable("1. 80% of the Class Understood the following:", understoodTopics, currentY, [204, 255, 204]); // Light green
+                currentY = addCategoryTable("2. 80% of the Class Needs Practice for the following:", needPracticeTopics, currentY, [255, 255, 204]); // Light yellow
+                currentY = addCategoryTable("3. 80% of the Class Didn't Understand the following:", notUnderstoodTopics, currentY, [255, 204, 204]); // Light red
+
+                // Save the PDF
+                const filename = `${grade}_${subject}_${section}_${paper}_Class_Analysis_Report.pdf`;
+                doc.save(filename);
+            } else {
+                alert('No data found for students.');
+            }
+        }).catch(error => {
+            console.error("Error fetching data from Firebase:", error);
+            alert("Error fetching data from Firebase.");
+        });
+
+    } else {
+        alert('Please select Grade, Section, Subject, and Paper.');
+    }
+});
+
+
+
+    </script>
+    
+</body>
+</html>

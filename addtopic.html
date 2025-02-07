@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Topics</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+        import { getDatabase, ref, set, push } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js"; 
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBy71Yn9FKyPFcpxD06bmk-L5wySM3smdA",
+            authDomain: "pscs-dd9ea.firebaseapp.com",
+            databaseURL: "https://pscs-dd9ea-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "pscs-dd9ea",
+            storageBucket: "pscs-dd9ea.firebasestorage.app",
+            messagingSenderId: "754149930287",
+            appId: "1:754149930287:web:ea9d2a91b86283d3de1dda",
+            measurementId: "G-R71WSHZ1DK"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);  // Firebase Realtime Database
+
+        // Fetch the teacher's username from sessionStorage
+        const teacherUsername = sessionStorage.getItem('teacherUsername');
+        if (!teacherUsername) {
+            alert("Teacher username not found in session.");
+            window.location.href = "login.html"; // Redirect to login page if no username
+        }
+
+        // Function to save topics to Firebase
+        function saveTopics() {
+    const grade = document.getElementById("grade").value;
+    const subject = document.getElementById("subject").value;
+    const paper = document.getElementById("paper").value;
+
+    const topics = [];
+    const topicSections = document.querySelectorAll(".topic-section");
+
+    // Loop through each topic section (input fields for topic and subtopics)
+    topicSections.forEach(section => {
+        const topicName = section.querySelector(".topic-input").value.trim();
+        const subtopics = [];
+        const subtopicInputs = section.querySelectorAll(".subtopic-input");
+
+        // Collect all subtopics for this topic
+        subtopicInputs.forEach(input => {
+            const subtopicValue = input.value.trim();
+            if (subtopicValue) {
+                subtopics.push(subtopicValue);  // Only add non-empty subtopics
+            }
+        });
+
+        // If the topic name is valid and subtopics exist, add to topics array
+        if (topicName && subtopics.length > 0) {
+            topics.push({ topic: topicName, subtopics });
+        } else if (topicName) {
+            // Even if there are no subtopics, save the topic with an empty subtopics array
+            topics.push({ topic: topicName, subtopics: [] });
+        }
+    });
+
+    // Firebase reference to store topics
+    const teacherRef = ref(database, `teachers/${teacherUsername}/grades/${grade}/subjects/${subject}/papers/${paper}/topics`);
+    
+    // Save topics to Firebase
+    topics.forEach((topic) => {
+        const newTopicRef = push(teacherRef);  // Create a new unique ID for each topic
+        set(newTopicRef, {
+            topic: topic.topic,  // Save the topic name
+            subtopics: topic.subtopics || []  // Always save subtopics, default to empty array if none
+        }).then(() => {
+            alert("Topics and subtopics saved successfully!");
+            displayTopics(topics);  // Optionally, display topics in the UI
+            document.getElementById("topic-form").style.display = "none"; // Hide form after saving
+            document.getElementById("topics-list").style.display = "block"; // Show saved topics list
+        }).catch((error) => {
+            console.error("Error saving topic:", error);
+            alert("Error saving topic. Please try again.");
+        });
+    });
+}
+
+
+
+        // Function to display topics on the page
+        function displayTopics(topics) {
+            const topicsList = document.getElementById("topics-list");
+            topicsList.innerHTML = ''; // Clear previous topics list
+
+            topics.forEach((topic, index) => {
+                const topicElement = document.createElement("div");
+                topicElement.classList.add("topic-display");
+
+                let topicHTML = `<h3>Topic ${index + 1}: ${topic.topic}</h3><ul>`;
+                topic.subtopics.forEach(subtopic => {
+                    topicHTML += `<li>${subtopic}</li>`;
+                });
+                topicHTML += `</ul>`;
+                topicElement.innerHTML = topicHTML;
+
+                topicsList.appendChild(topicElement);
+            });
+        }
+
+        // Function to add a subtopic input field
+        function addSubtopic(sectionId) {
+            const subtopicsContainer = document.getElementById("subtopics-container-" + sectionId);
+            const subtopicInput = document.createElement("input");
+            subtopicInput.classList.add("subtopic-input");
+            subtopicInput.type = "text";
+            subtopicInput.placeholder = "Subtopic";
+            subtopicsContainer.appendChild(subtopicInput);
+        }
+
+        // Function to add a new topic input section
+        function addMoreTopics() {
+            const topicSectionId = Date.now(); // Unique ID for each new section
+            const topicSection = document.createElement("div");
+            topicSection.classList.add("topic-section");
+            topicSection.id = "topic-section-" + topicSectionId;
+
+            const topicInput = document.createElement("input");
+            topicInput.classList.add("topic-input");
+            topicInput.type = "text";
+            topicInput.placeholder = "Topic";
+            topicSection.appendChild(topicInput);
+
+            const subtopicsContainer = document.createElement("div");
+            subtopicsContainer.classList.add("subtopics-container");
+            subtopicsContainer.id = "subtopics-container-" + topicSectionId;
+
+            const subtopicInput = document.createElement("input");
+            subtopicInput.classList.add("subtopic-input");
+            subtopicInput.type = "text";
+            subtopicInput.placeholder = "Subtopic";
+            subtopicsContainer.appendChild(subtopicInput);
+
+            topicSection.appendChild(subtopicsContainer);
+
+            // Add button to add more subtopics
+            const addSubtopicButton = document.createElement("button");
+            addSubtopicButton.textContent = "Add + Subtopic";
+            addSubtopicButton.type = "button";
+            addSubtopicButton.onclick = () => addSubtopic(topicSectionId);
+            topicSection.appendChild(addSubtopicButton);
+
+            document.getElementById("topics-container").appendChild(topicSection);
+        }
+
+        // Adding event listener to the Add More Topics button
+        document.addEventListener("DOMContentLoaded", function() {
+            const addButton = document.getElementById("add-topic-button");
+            if (addButton) {
+                addButton.addEventListener("click", addMoreTopics); // Use event listener for button click
+            }
+
+            // Event listener for Save Topics button
+            const saveButton = document.getElementById("save-topics-button");
+            if (saveButton) {
+                saveButton.addEventListener("click", saveTopics); // Ensuring the button calls saveTopics
+            }
+        });
+    </script>
+    <style>
+        /* Your existing styles */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            height: 100vh;
+            margin: 0;
+        }
+        /* Header Styles */
+        .header {
+            width: 100%;
+            background-color: #4facfe;
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+        .header h2 {
+            margin: 0;
+        }
+        .go-back-button {
+            padding: 10px 20px;
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .go-back-button:hover {
+            background: #ff1a1a;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            width: 50%;
+            text-align: center;
+            margin-top: 60px; /* Ensure content doesn't overlap with fixed header */
+        }
+        input {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            width: 80%;
+            padding: 10px;
+            background: #4facfe;
+            border: none;
+            color: white;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #00c6ff;
+        }
+        .subtopics-container {
+            margin-top: 15px;
+        }
+        .subtopic-input {
+            width: 90%;
+            margin-bottom: 10px;
+            padding: 8px;
+        }
+        .topic-section {
+            margin-bottom: 20px;
+        }
+        .topic-display {
+            margin: 10px 0;
+        }
+        .topic-display ul {
+            padding-left: 20px;
+        }
+        .topic-display li {
+            list-style-type: square;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <div class="header">
+        <h2>Add Topics</h2>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <h3>Enter Topic Details</h3>
+        <form id="topic-form">
+            <input type="text" id="grade" placeholder="Grade (e.g., 11)" required><br>
+            <input type="text" id="subject" placeholder="Subject (e.g., CS)" required><br>
+            <input type="text" id="paper" placeholder="Paper (e.g., P1)" required><br>
+            <div id="topics-container">
+                <!-- Topics will be added dynamically here -->
+            </div>
+            <button type="button" id="add-topic-button">Add More Topics</button><br>
+            <button type="button" id="save-topics-button">Save Topics</button>
+        </form>
+
+        <div id="topics-list" style="display:none;">
+            <!-- List of added topics will be displayed here -->
+        </div>
+        <button class="go-back-button" onclick="window.location.href='tdash.html'">Go Back</button>
+    </div>
+</body>
+</html>

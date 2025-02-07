@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Login/Signup</title>
+    <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+    <script defer src="auth.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            margin: 0;
+        }
+        .header {
+            width: 100%;
+            background: rgba(6, 77, 103, 0.7);
+            color: rgb(255, 255, 255);
+            text-align: left;
+            padding: 15px 0;
+            padding-left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .container {
+            width: 350px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            transition: all 0.3s ease;
+            margin-top: 60px;
+        }
+        .hidden { display: none; }
+        input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #4facfe;
+            border: none;
+            color: white;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #00c6ff;
+        }
+        #toggle-link {
+            display: block;
+            margin-top: 15px;
+            color: #007bff;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        #toggle-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">Presidential School In Bukhara</div>
+    <div class="container">
+        <h2 id="form-title">Teacher Signup</h2>
+        <form id="signup-form" class="hidden">
+            <input type="text" id="signup-username" placeholder="Username" required><br>
+            <input type="password" id="signup-password" placeholder="Password" required><br>
+            <input type="text" id="signup-subject" placeholder="Subject" required><br>
+            <button type="submit">Signup</button>
+            <br><br><br>
+            <button type="button" id="go-to-login">Already have an account? Login</button>
+        </form>
+        
+        <form id="login-form" >
+            <input type="text" id="login-username" placeholder="Username" required><br>
+            <input type="password" id="login-password" placeholder="Password" required><br>
+            <button type="submit">Login</button>
+            <br><br><br>
+            <button type="button" id="go-to-signup">Don't have an account? Sign up</button>
+        </form>
+    </div>
+    </div>
+</body>
+<script type="module">
+    // Import the necessary functions from Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-analytics.js";
+    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+  
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBy71Yn9FKyPFcpxD06bmk-L5wySM3smdA",
+      authDomain: "pscs-dd9ea.firebaseapp.com",
+      databaseURL: "https://pscs-dd9ea-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "pscs-dd9ea",
+      storageBucket: "pscs-dd9ea.firebasestorage.app",
+      messagingSenderId: "754149930287",
+      appId: "1:754149930287:web:ea9d2a91b86283d3de1dda",
+      measurementId: "G-R71WSHZ1DK"
+    };
+  
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const database = getDatabase(app);  // Firebase Realtime Database
+  
+    // Signup form submission
+    const signupForm = document.getElementById('signup-form');
+    signupForm.addEventListener('submit', function(event) {
+      event.preventDefault();  // Prevent form from refreshing the page
+  
+      // Get input values
+      const username = document.getElementById('signup-username').value;
+      const password = document.getElementById('signup-password').value;
+      const subject = document.getElementById('signup-subject').value;
+  
+      // Reference to the user node in the database
+      const userRef = ref(database, 'users/' + username);
+  
+      // Check if the user already exists
+      get(userRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          // If user already exists
+          alert('Username already taken. Please choose a different username.');
+        } else {
+          // If user does not exist, save the user data
+          set(userRef, {
+            username: username,
+            password: password,  // (Warning: Storing passwords directly in DB is not recommended. Use hashing!)
+            subject: subject
+          }).then(() => {
+            alert('Signup successful!');
+            signupForm.reset();  // Reset the form after successful signup
+          }).catch((error) => {
+            console.error('Error saving user data:', error);
+            alert('Error during signup. Please try again.');
+          });
+        }
+      }).catch((error) => {
+        console.error('Error checking if user exists:', error);
+        alert('Error checking username. Please try again.');
+      });
+    });
+  
+   // Login form submission
+const loginForm = document.getElementById('login-form');
+loginForm.addEventListener('submit', function(event) {
+  event.preventDefault();  // Prevent form from refreshing the page
+
+  // Get input values
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+
+  // Check user data in Firebase Realtime Database
+  const userRef = ref(database, 'users/' + username);  // Reference to the user
+  console.log('Checking user:', username);  // Debug log
+
+  // Fetch user data
+  get(userRef).then((snapshot) => {
+    if (snapshot.exists()) {
+      // If user exists, check if the passwords match
+      const userData = snapshot.val();
+      console.log('Fetched user data:', userData);  // Debug log
+
+      if (userData.password === password) {
+        // If password matches, login is successful
+        console.log('Login successful!');
+        alert('Login successful!');
+        // Store teacher's username to be used in the dashboard
+        sessionStorage.setItem('teacherUsername', username);
+        window.location.href = 'tdash.html';  // Redirect to dashboard
+      } else {
+        // Password mismatch
+        console.log('Incorrect password');
+        alert('Incorrect password. Please try again.');
+      }
+    } else {
+      // User not found
+      console.log('User not found');
+      alert('User not found. Please sign up first.');
+    }
+  }).catch((error) => {
+    console.error('Error retrieving user data:', error);
+    alert('Error during login. Please try again.');
+  });
+});
+    // Get elements for toggling between login and signup forms
+    const goToLoginButton = document.getElementById('go-to-login');
+    const goToSignupButton = document.getElementById('go-to-signup');
+  
+    // Toggle to login form
+    goToLoginButton.addEventListener('click', function() {
+      signupForm.classList.add('hidden');
+      loginForm.classList.remove('hidden');
+    });
+  
+    // Toggle to signup form
+    goToSignupButton.addEventListener('click', function() {
+      loginForm.classList.add('hidden');
+      signupForm.classList.remove('hidden');
+    });
+  </script>
+  </html>

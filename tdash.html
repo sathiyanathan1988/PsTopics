@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <script type="module">
+        // Import necessary Firebase SDK functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js"; 
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBy71Yn9FKyPFcpxD06bmk-L5wySM3smdA",
+            authDomain: "pscs-dd9ea.firebaseapp.com",
+            databaseURL: "https://pscs-dd9ea-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "pscs-dd9ea",
+            storageBucket: "pscs-dd9ea.firebasestorage.app",
+            messagingSenderId: "754149930287",
+            appId: "1:754149930287:web:ea9d2a91b86283d3de1dda",
+            measurementId: "G-R71WSHZ1DK"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);  // Firebase Realtime Database
+
+        // Fetch the teacher's username from sessionStorage
+        const teacherUsername = sessionStorage.getItem('teacherUsername');
+        
+        // Reference to the teacher's name element in the header
+        const teacherNameElement = document.getElementById('teacher-name');
+        const logOffButton = document.getElementById('logoff-button');
+
+        // Fetch the teacher's name from Firebase
+        const userRef = ref(database, 'users/' + teacherUsername);  // Use the username from sessionStorage
+        get(userRef).then((snapshot) => {
+            if (snapshot.exists()) {
+                const userData = snapshot.val();
+                teacherNameElement.innerText = `Hello, ${userData.username}`;  // Display teacher's name
+            } else {
+                console.log('Teacher data not found!');
+            }
+        }).catch((error) => {
+            console.error('Error fetching teacher data:', error);
+        });
+
+        // Log off functionality
+        logOffButton.addEventListener('click', function() {
+            sessionStorage.removeItem('teacherUsername');
+            window.location.href = 'tsignup.html'; // Redirect to login page
+        });
+    </script>
+    <style>
+        /* Your existing styles */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            margin: 0;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;  /* Space between title and teacher's name */
+            align-items: center;
+            width: 100%;
+            background: rgba(6, 77, 103, 0.7);
+            color: rgb(255, 255, 255);
+            padding: 15px 20px;
+            font-size: 24px;
+            font-weight: bold;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .header .title {
+            font-size: 24px;
+        }
+        .header .teacher-info {
+            display: flex;
+            align-items: center;
+        }
+        .header .teacher-name {
+            font-size: 18px;
+            font-weight: normal;
+            color: white;
+            margin-right: 15px;
+        }
+        .header .logoff-button {
+            padding: 8px 16px;
+            background-color: #ff4d4d;
+            border: none;
+            color: white;
+            font-size: 14px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .header .logoff-button:hover {
+            background-color: #ff1a1a;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            width: 80%;
+            max-width: 1200px;
+            margin-top: 80px;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .card:hover {
+            box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(-5px);
+        }
+        .card i {
+            font-size: 50px;
+            color: #4facfe;
+            margin-bottom: 15px;
+        }
+        .card h3 {
+            font-size: 18px;
+            color: #333;
+        }
+        .card p {
+            font-size: 14px;
+            color: #666;
+        }
+        .card button {
+            padding: 10px 20px;
+            background: #4facfe;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 16px;
+            margin-top: 15px;
+        }
+        .card button:hover {
+            background: #00c6ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">Teacher Dashboard - Presidential School</div>
+        <div class="teacher-info">
+            <div class="teacher-name" id="teacher-name">Hello, Teacher</div> <!-- Teacher's name will be displayed here -->
+            <button id="logoff-button" class="logoff-button">Log Off</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Card: Add Class and Topics -->
+        <div class="card">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <h3>Add Class and Topics</h3>
+            <p>Add topics for your students.</p>
+            <button onclick="window.location.href='addtopic.html'">Go to Add Class</button>
+        </div>
+
+        <!-- Card: View Classes -->
+        <div class="card">
+            <i class="fas fa-book-reader"></i>
+            <h3>View Classes</h3>
+            <p>View Classes and topics</p>
+            <button onclick="window.location.href='view-classes.html'">Go to View Classes</button>
+        </div>
+
+        <!-- Card: Generate Reports -->
+        <div class="card">
+            <i class="fas fa-chart-line"></i>
+            <h3>Generate Reports</h3>
+            <p>Generate performance reports for your students and classes.</p>
+            <button onclick="window.location.href='treport.html'">Go to Reports</button>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Analysis PDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+</head>
+<body>
+
+    <div>
+        <!-- Dropdowns for grade, section, subject, and paper -->
+        <select id="grade-dropdown">
+            <option value="4">Grade 4</option>
+            <option value="5">Grade 5</option>
+            <!-- Add other grades as needed -->
+        </select>
+
+        <select id="section-dropdown">
+            <option value="Green">Green</option>
+            <option value="Blue">Blue</option>
+            <!-- Add other sections as needed -->
+        </select>
+
+        <select id="subject-dropdown">
+            <option value="Math">Math</option>
+            <option value="Science">Science</option>
+            <!-- Add other subjects as needed -->
+        </select>
+
+        <select id="paper-dropdown">
+            <option value="P1">Paper 1</option>
+            <option value="P2">Paper 2</option>
+            <!-- Add other papers as needed -->
+        </select>
+
+        <button id="generate-analysis-pdf">Generate Analysis PDF</button>
+    </div>
+
+    <script>
+        // Firebase configuration (replace with your own Firebase config)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID",
+        };
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database(app);
+
+        // Add an event listener to the button to generate PDF
+        document.getElementById('generate-analysis-pdf').addEventListener('click', function() {
+            const grade = document.getElementById('grade-dropdown').value;
+            const section = document.getElementById('section-dropdown').value;
+            const subject = document.getElementById('subject-dropdown').value;
+            const paper = document.getElementById('paper-dropdown').value;
+
+            if (grade && section && subject && paper) {
+                // Create a new jsPDF instance
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // Set up title section (Grade, Section, Subject, Paper)
+                doc.setFontSize(14);
+                doc.text(`Grade: ${grade}`, 10, 10);
+                doc.text(`Section: ${section}`, 10, 20);
+                doc.text(`Subject: ${subject}`, 10, 30);
+                doc.text(`Paper: ${paper}`, 10, 40);
+
+                let currentY = 50;  // Starting position for the category tables
+
+                // Function to add a category table to the PDF
+                const addCategoryTable = (title, data, startY, categoryColor, doc) => {
+                    let y = startY;
+                    doc.setFontSize(12);
+                    doc.text(title, 10, y);
+                    y += 10;
+
+                    const tableHeaders = ['Topic', 'Subtopic'];
+                    const tableRows = data.map(row => [row.topic, row.subtopic]);
+
+                    doc.autoTable({
+                        head: [tableHeaders],
+                        body: tableRows,
+                        startY: y,
+                        theme: 'grid', // Grid theme adds borders
+                        margin: { top: 5, left: 10, right: 10, bottom: 10 },
+                        styles: {
+                            cellPadding: 2,
+                            fontSize: 10,
+                            lineWidth: 0.5,
+                            lineColor: [0, 0, 0],
+                        },
+                        headStyles: {
+                            fillColor: [200, 220, 255], // Light blue color for header
+                            textColor: [0, 0, 0],
+                            fontStyle: 'bold',
+                            lineWidth: 0.5,
+                            lineColor: [0, 0, 0],
+                        },
+                        bodyStyles: {
+                            fillColor: categoryColor, // Category color for the rows
+                            textColor: [0, 0, 0],
+                        }
+                    });
+
+                    return doc.lastAutoTable.finalY + 10;
+                };
+
+                // Fetch data from Firebase
+                get(ref(database, `responses/${grade}/${subject}/${section}/${paper}/students`)).then(snapshot => {
+                    if (snapshot.exists()) {
+                        const students = snapshot.val();
+                        console.log('Fetched Students Data:', students);  // Log the raw data
+
+                        // Initialize arrays to store subtopics in each category
+                        const understoodSubtopics = [];
+                        const needPracticeSubtopics = [];
+                        const notUnderstoodSubtopics = [];
+
+                        let subtopicCount = {};
+
+                        // Process each student and their topics
+                        for (const studentName in students) {
+                            const student = students[studentName];
+                            const topics = student.topics || {};
+
+                            console.log(`Processing student: ${studentName}`);
+                            console.log('Student Topics:', topics);
+
+                            for (const topicKey in topics) {
+                                if (topics.hasOwnProperty(topicKey)) {
+                                    const subtopics = topics[topicKey];
+
+                                    console.log(`Processing topic: ${topicKey}`);
+                                    console.log('Subtopics:', subtopics);
+
+                                    for (const subtopicKey in subtopics) {
+                                        const progress = subtopics[subtopicKey];
+
+                                        // Initialize counters for subtopics if not already present
+                                        if (!subtopicCount[subtopicKey]) {
+                                            subtopicCount[subtopicKey] = { understood: 0, needPractice: 0, notUnderstood: 0, total: 0 };
+                                        }
+
+                                        // Increment counters based on progress
+                                        subtopicCount[subtopicKey].total++;
+
+                                        if (progress === 'Understood') {
+                                            subtopicCount[subtopicKey].understood++;
+                                        } else if (progress === 'Need Practice') {
+                                            subtopicCount[subtopicKey].needPractice++;
+                                        } else if (progress === 'Not Understood') {
+                                            subtopicCount[subtopicKey].notUnderstood++;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Log the subtopic counts to check
+                        console.log('Subtopic Count Data:', subtopicCount);
+
+                        const totalStudents = Object.keys(students).length;
+
+                        // Calculate percentages and add to respective category arrays
+                        for (const subtopicKey in subtopicCount) {
+                            const subtopicData = subtopicCount[subtopicKey];
+                            const understoodPercentage = (subtopicData.understood / totalStudents) * 100;
+                            const needPracticePercentage = (subtopicData.needPractice / totalStudents) * 100;
+                            const notUnderstoodPercentage = (subtopicData.notUnderstood / totalStudents) * 100;
+
+                            console.log(`Subtopic: ${subtopicKey}`);
+                            console.log(`Understood: ${understoodPercentage}%`);
+                            console.log(`Need Practice: ${needPracticePercentage}%`);
+                            console.log(`Not Understood: ${notUnderstoodPercentage}%`);
+
+                            if (understoodPercentage > 80) {
+                                understoodSubtopics.push({ topic: subtopicKey.split(' ')[0], subtopic: subtopicKey });
+                            }
+                            if (needPracticePercentage > 80) {
+                                needPracticeSubtopics.push({ topic: subtopicKey.split(' ')[0], subtopic: subtopicKey });
+                            }
+                            if (notUnderstoodPercentage > 80) {
+                                notUnderstoodSubtopics.push({ topic: subtopicKey.split(' ')[0], subtopic: subtopicKey });
+                            }
+                        }
+
+                        // Add category tables to the PDF
+                        currentY = addCategoryTable('1. 80% of the Class Understood the following:', understoodSubtopics, currentY, [204, 255, 204], doc);
+                        currentY = addCategoryTable('2. 80% of the Class Needs Practice for the following:', needPracticeSubtopics, currentY, [255, 255, 204], doc);
+                        currentY = addCategoryTable('3. 80% of the Class Didn\'t Understand the following:', notUnderstoodSubtopics, currentY, [255, 204, 204], doc);
+
+                        // Save the PDF with a filename
+                        const filename = `${grade}_${subject}_${section}_${paper}_Class_Analysis_Report.pdf`;
+                        doc.save(filename);
+                    } else {
+                        console.log('No data found for students.');
+                    }
+                }).catch(error => {
+                    console.error('Error fetching data from Firebase:', error);
+                });
+            } else {
+                alert('Please select Grade, Section, Subject, and Paper.');
+            }
+        });
+    </script>
+</body>
+</html>

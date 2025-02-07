@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Classes</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+        import { getDatabase, ref, get, set, push, remove } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js"; 
+    
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBy71Yn9FKyPFcpxD06bmk-L5wySM3smdA",
+            authDomain: "pscs-dd9ea.firebaseapp.com",
+            databaseURL: "https://pscs-dd9ea-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "pscs-dd9ea",
+            storageBucket: "pscs-dd9ea.firebasestorage.app",
+            messagingSenderId: "754149930287",
+            appId: "1:754149930287:web:ea9d2a91b86283d3de1dda",
+            measurementId: "G-R71WSHZ1DK"
+        };
+    
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+    
+        const gradeSelect = document.getElementById('grade');
+        const subjectSelect = document.getElementById('subject');
+        const paperSelect = document.getElementById('paper');
+        const topicsContainer = document.getElementById('topics-container');
+        const saveButton = document.getElementById("save-topics-button");
+    
+        // Temporary array to hold new topics
+        let newTopics = [];
+    
+        // Fetch teacher's username from sessionStorage
+        const teacherUsername = sessionStorage.getItem('teacherUsername');
+            
+        if (!teacherUsername) {
+            alert("Teacher username not found.");
+            window.location.href = "login.html";  // Redirect to login if username is missing
+        } else {
+            // Display teacher name on the page
+            document.getElementById("teacher-name").textContent = "Hello, " + teacherUsername;
+        }
+    
+        // Fetch teacher's existing grades from Firebase
+        const teacherClassesRef = ref(database, `teachers/${teacherUsername}/grades`);
+        get(teacherClassesRef).then(snapshot => {
+            if (snapshot.exists()) {
+                const classes = snapshot.val();
+                Object.keys(classes).forEach(grade => {
+                    const option = document.createElement('option');
+                    option.value = grade;
+                    option.textContent = grade;
+                    gradeSelect.appendChild(option);
+                });
+    
+                // Automatically trigger the 'change' event for grade after loading
+                if (Object.keys(classes).length > 0) {
+                    gradeSelect.value = Object.keys(classes)[0];  // Select the first grade
+                    gradeSelect.dispatchEvent(new Event('change'));  // Trigger the change event
+                }
+            } else {
+                console.log('No grades found');
+            }
+        }).catch(error => {
+            console.error('Error fetching grades:', error);
+        });
+    
+        // Handle grade selection change
+        gradeSelect.addEventListener('change', () => {
+            subjectSelect.innerHTML = "<option value=''>Select Subject</option>";
+            paperSelect.innerHTML = "<option value=''>Select Paper</option>";
+            topicsContainer.innerHTML = "";
+    
+            const selectedGrade = gradeSelect.value;
+            if (selectedGrade) {
+                const gradeRef = ref(database, `teachers/${teacherUsername}/grades/${selectedGrade}/subjects`);
+                get(gradeRef).then(snapshot => {
+                    if (snapshot.exists()) {
+                        const subjects = snapshot.val();
+                        Object.keys(subjects).forEach(subject => {
+                            const option = document.createElement('option');
+                            option.value = subject;
+                            option.textContent = subject;
+                            subjectSelect.appendChild(option);
+                        });
+                    } else {
+                        console.log('No subjects found for this grade');
+                    }
+                }).catch(error => {
+                    console.error('Error fetching subjects:', error);
+                });
+            }
+        });
+    
+        // Handle subject selection change
+        subjectSelect.addEventListener('change', () => {
+            paperSelect.innerHTML = "<option value=''>Select Paper</option>";
+            topicsContainer.innerHTML = "";
+    
+            const selectedGrade = gradeSelect.value;
+            const selectedSubject = subjectSelect.value;
+            if (selectedGrade && selectedSubject) {
+                const subjectRef = ref(database, `teachers/${teacherUsername}/grades/${selectedGrade}/subjects/${selectedSubject}/papers`);
+                get(subjectRef).then(snapshot => {
+                    if (snapshot.exists()) {
+                        const papers = snapshot.val();
+                        Object.keys(papers).forEach(paper => {
+                            const option = document.createElement('option');
+                            option.value = paper;
+                            option.textContent = paper;
+                            paperSelect.appendChild(option);
+                        });
+                    }
+                }).catch(error => {
+                    console.error('Error fetching papers:', error);
+                });
+            }
+        });
+    
+        // Handle paper selection change and fetch topics
+        paperSelect.addEventListener('change', () => {
+            const selectedGrade = gradeSelect.value;
+            const selectedSubject = subjectSelect.value;
+            const selectedPaper = paperSelect.value;
+    
+            topicsContainer.innerHTML = ""; // Clear existing topics
+    
+            if (selectedGrade && selectedSubject && selectedPaper) {
+                // Reference to topics in Firebase
+                const topicsRef = ref(database, `teachers/${teacherUsername}/grades/${selectedGrade}/subjects/${selectedSubject}/papers/${selectedPaper}/topics`);
+                
+                get(topicsRef).then(snapshot => {
+                    if (snapshot.exists()) {
+                        const topicsData = snapshot.val();
+                        console.log("Fetched topics:", topicsData); // Debugging log
+                        displayFetchedTopics(topicsData);  // Function to display topics
+                    } else {
+                        console.log('No topics found for this paper');
+                    }
+                }).catch(error => {
+                    console.error('Error fetching topics:', error);
+                });
+            }
+        });
+    
+        // Function to display fetched topics
+        function displayFetchedTopics(topicsData) {
+            if (topicsData) {
+                Object.keys(topicsData).forEach(topicKey => {
+                    const topic = topicsData[topicKey];
+                    const topicName = topic.topic;
+                    const subtopics = topic.subtopics || [];
+    
+                    // Create a new topic section in the UI
+                    const topicSection = document.createElement('div');
+                    topicSection.classList.add('topic-section');
+                    topicSection.setAttribute('data-topic-id', topicKey);  // Store topic ID for deletion
+                    
+                    // Create input for the topic name
+                    const topicInput = document.createElement('input');
+                    topicInput.classList.add('topic-input');
+                    topicInput.type = 'text';
+                    topicInput.value = topicName;
+                    
+                    // Create a container for subtopics
+                    const subtopicsContainer = document.createElement('div');
+                    subtopicsContainer.classList.add('subtopics-container');
+    
+                    // Add existing subtopics as input fields
+                    subtopics.forEach(subtopic => {
+                        const subtopicInput = document.createElement('input');
+                        subtopicInput.classList.add('subtopic-input');
+                        subtopicInput.type = 'text';
+                        subtopicInput.value = subtopic;
+                        subtopicsContainer.appendChild(subtopicInput);
+                    });
+    
+                    // Add the "Add Subtopic" button
+                    const addSubtopicButton = document.createElement('button');
+                    addSubtopicButton.textContent = 'Add Subtopic';
+                    addSubtopicButton.onclick = () => addSubtopic(subtopicsContainer);
+                    
+                    // Add the "Remove Topic" button
+                    const removeTopicButton = document.createElement('button');
+                    removeTopicButton.textContent = 'Remove Topic';
+                    removeTopicButton.onclick = () => removeTopic(topicSection, topicKey);
+    
+                    // Append the topic input, subtopics container, and buttons
+                    topicSection.appendChild(topicInput);
+                    topicSection.appendChild(subtopicsContainer);
+                    topicSection.appendChild(addSubtopicButton);
+                    topicSection.appendChild(removeTopicButton);
+    
+                    // Append the topic section to the topics container
+                    topicsContainer.appendChild(topicSection);
+                });
+            }
+        }
+    
+        // Function to add a new subtopic input field
+        function addSubtopic(subtopicsContainer) {
+            const subtopicInput = document.createElement('input');
+            subtopicInput.classList.add('subtopic-input');
+            subtopicInput.type = 'text';
+            subtopicsContainer.appendChild(subtopicInput);
+        }
+    
+        // Function to remove a topic
+        function removeTopic(topicSection, topicKey) {
+            const topicRef = ref(database, `teachers/${teacherUsername}/grades/${gradeSelect.value}/subjects/${subjectSelect.value}/papers/${paperSelect.value}/topics/${topicKey}`);
+            remove(topicRef).then(() => {
+                alert('Topic removed successfully');
+                topicSection.remove();  // Remove the topic from the UI
+            }).catch(error => {
+                console.error('Error removing topic:', error);
+                alert('Error removing topic');
+            });
+        }
+    
+        // Event listener to add a new topic section
+        document.getElementById("add-topic-button").addEventListener("click", () => {
+            addNewTopicSection();
+        });
+    
+        // Function to add a new topic section
+        function addNewTopicSection() {
+            const topicSection = document.createElement('div');
+            topicSection.classList.add('topic-section');
+    
+            const topicInput = document.createElement('input');
+            topicInput.classList.add('topic-input');
+            topicInput.type = 'text';
+            topicInput.placeholder = 'Enter topic name';
+    
+            const subtopicsContainer = document.createElement('div');
+            subtopicsContainer.classList.add('subtopics-container');
+    
+            const addSubtopicButton = document.createElement('button');
+            addSubtopicButton.textContent = 'Add Subtopic';
+            addSubtopicButton.onclick = () => addSubtopic(subtopicsContainer);
+    
+            topicSection.appendChild(topicInput);
+            topicSection.appendChild(subtopicsContainer);
+            topicSection.appendChild(addSubtopicButton);
+    
+            topicsContainer.appendChild(topicSection);
+        }
+    
+        // Event listener to save the topics
+        saveButton.addEventListener('click', () => {
+            saveTopicsToFirebase();
+        });
+    
+        // Function to save the topics to Firebase
+        function saveTopicsToFirebase() {
+            const selectedGrade = gradeSelect.value;
+            const selectedSubject = subjectSelect.value;
+            const selectedPaper = paperSelect.value;
+    
+            if (selectedGrade && selectedSubject && selectedPaper) {
+                const topicsRef = ref(database, `teachers/${teacherUsername}/grades/${selectedGrade}/subjects/${selectedSubject}/papers/${selectedPaper}/topics`);
+                
+                // Prepare topics data
+                const topicsData = {};
+                const topicSections = topicsContainer.querySelectorAll('.topic-section');
+                
+                topicSections.forEach((section, index) => {
+                    const topicInput = section.querySelector('.topic-input');
+                    const subtopicsInputs = section.querySelectorAll('.subtopic-input');
+                    
+                    const topicName = topicInput.value;
+                    const subtopics = Array.from(subtopicsInputs).map(input => input.value);
+    
+                    topicsData[`topic${index + 1}`] = {
+                        topic: topicName,
+                        subtopics: subtopics
+                    };
+                });
+    
+                set(topicsRef, topicsData).then(() => {
+                    alert('Topics saved successfully');
+                }).catch(error => {
+                    console.error('Error saving topics:', error);
+                    alert('Error saving topics');
+                });
+            }
+        }
+    </script>
+    
+    
+   
+    
+    
+    
+    
+       
+    
+    
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background-color: #4facfe;
+            padding: 15px;
+            color: white;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h2 {
+            margin: 0;
+        }
+        #logoff-button {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            width: auto;
+            height: auto;
+        }
+        #logoff-button:hover {
+            background-color: #ff1a1a;
+        }
+        .container {
+            margin-top: 60px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        select, input[type="text"], button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .subtopic-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #00c6ff;
+            color: white;
+        }
+        button {
+            background-color: #4facfe;
+            color: white;
+            border: none;
+        }
+        .topic-section {
+            margin-bottom: 20px;
+        }
+        .topic-section input, .topic-section button {
+            width: 90%;
+            margin: 5px;
+        }
+        .topic-section .subtopics-container input {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>View Classes</h2>
+        <button id="logoff-button">Log Off</button>
+    </div>
+    <div class="container">
+        <p id="teacher-name">Loading...</p>
+        <select id="grade">
+            <option value="">Select Grade</option>
+        </select>
+        <select id="subject">
+            <option value="">Select Subject</option>
+        </select>
+        <select id="paper">
+            <option value="">Select Paper</option>
+        </select>
+        <div id="topics-container"></div>
+        <button id="add-topic-button">Add More Topics</button>
+        <button id="save-topics-button">Save Topics</button>
+        <button class="go-back-button" onclick="window.location.href='tdash.html'">Go Back</button>
+    </div>
+</body>
+</html>
