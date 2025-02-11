@@ -725,13 +725,13 @@ document.getElementById('generate-analysis-pdf').addEventListener('click', funct
                             subtopic: subtopicKey
                         });
                     }
-                    if (needPracticePercentage > 50) {
+                    if (needPracticePercentage > 20) {
                         needPracticeTopics.push({
                             topic: subtopicData.topic, // We now correctly use the `topic` from subtopicData
                             subtopic: subtopicKey
                         });
                     }
-                    if (notUnderstoodPercentage > 30) {
+                    if (notUnderstoodPercentage > 20) {
                         notUnderstoodTopics.push({
                             topic: subtopicData.topic, // We now correctly use the `topic` from subtopicData
                             subtopic: subtopicKey
@@ -740,9 +740,9 @@ document.getElementById('generate-analysis-pdf').addEventListener('click', funct
                 }
 
                 // Add each category table with unique subtopics
-                currentY = addCategoryTable("1. 80% of the Class Understood the following:", understoodTopics, currentY, [204, 255, 204]); // Light green
-                currentY = addCategoryTable("2. 50% of the Class Needs Practice for the following:", needPracticeTopics, currentY, [255, 255, 204]); // Light yellow
-                currentY = addCategoryTable("3. 30% of the Class Didn't Understand the following:", notUnderstoodTopics, currentY, [255, 204, 204]); // Light red
+                currentY = addCategoryTable("1. More than 80% of the Class Understood the following:", understoodTopics, currentY, [204, 255, 204]); // Light green
+                currentY = addCategoryTable("2. More than 20% of the Class Needs Practice for the following:", needPracticeTopics, currentY, [255, 255, 204]); // Light yellow
+                currentY = addCategoryTable("3. More than 20% of the Class Didn't Understand the following:", notUnderstoodTopics, currentY, [255, 204, 204]); // Light red
 
                 // Save the PDF
                 const filename = `${grade}_${subject}_${section}_${paper}_Class_Analysis_Report.pdf`;
